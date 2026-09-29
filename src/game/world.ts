@@ -232,7 +232,9 @@ export function blocked(p: Point, scene: SceneId, radius = 7) {
   const margin = scene === "street" ? 16 : 42;
   return (
     p.x < margin + radius ||
-    p.y < margin + radius ||
+    // The avatar's feet are its collision origin. Leave headroom below the
+    // interior back wall (ends at y=70) and the outdoor map's top edge.
+    p.y < (scene === "street" ? 27 : 97) + radius ||
     p.x > d.w - margin - radius ||
     p.y > d.h - margin - radius ||
     obstacles(scene).some(

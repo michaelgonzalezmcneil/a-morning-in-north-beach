@@ -715,7 +715,7 @@ kbd {
     font-size: 42px;
   }
 }
-@media (max-width: 760px) {
+@media (max-width: 760px), (pointer: coarse) {
   .nb-app {
     padding: 0 18px;
   }
@@ -808,8 +808,11 @@ kbd {
     height: 41px;
     padding: 0 12px;
   }
+  .nb-world-section {
+    --nb-touch-world-height: clamp(180px, calc(100svh - 205px), 430px);
+  }
   .nb-world {
-    height: 430px;
+    height: var(--nb-touch-world-height);
   }
   .nb-location-pill {
     font-size: 8px;
@@ -854,7 +857,7 @@ kbd {
     gap: 2px;
     position: absolute;
     left: 12px;
-    top: calc(41px + 430px + 5px);
+    top: calc(41px + var(--nb-touch-world-height) + 5px);
     touch-action: none;
   }
   .nb-touch button {
@@ -972,7 +975,7 @@ kbd {
 .nb-actions button {
   touch-action: none;
 }
-@media (max-width: 760px) {
+@media (max-width: 760px), (pointer: coarse) {
   .nb-intro h2 {
     display: block;
     font: 15px Georgia;
@@ -989,7 +992,7 @@ kbd {
 .nb-mobile-portfolio {
   display: none;
 }
-@media (max-width: 760px) {
+@media (max-width: 760px), (pointer: coarse) {
   .nb-mobile-portfolio {
     display: inline-block;
     font-size: 10px;
@@ -1049,7 +1052,7 @@ kbd {
   overflow: hidden;
   white-space: nowrap;
 }
-@media (max-width: 760px) {
+@media (max-width: 760px), (pointer: coarse) {
   .nb-app {
     padding-left: max(18px, env(safe-area-inset-left));
     padding-right: max(18px, env(safe-area-inset-right));
@@ -1060,4 +1063,12 @@ kbd {
     padding-left: max(11px, env(safe-area-inset-left));
     padding-right: max(11px, env(safe-area-inset-right));
   }
+}
+/* Keep the existing instruction card clear of the avatar at the bottom edge. */
+.nb-world:has(.nb-canvas[data-prompt-top="true"]) .nb-prompt {
+  top: 16px;
+  bottom: auto;
+}
+.nb-world:has(.nb-canvas[data-prompt-top="true"]) .nb-location-pill {
+  visibility: hidden;
 }

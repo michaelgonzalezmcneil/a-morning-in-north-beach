@@ -71,7 +71,7 @@ npm run build
 npm run test:browser
 ```
 
-Unit tests check reachability, exits, return spawns, collision tunnelling, diagonal speed, companion turns, and bad storage. Browser tests drive real keyboard input and Chromium touch events against the production build. Screenshots are written to `docs/screenshots/`. See [verification notes](docs/VERIFICATION.md) for the performed checks and limitations.
+Unit tests check reachability, exits, return spawns, collision tunnelling, diagonal speed, companion turns, and bad storage. Browser tests drive real keyboard input and Chromium touch events against the production build. Screenshots are written to `docs/screenshots/`. See [verification notes](docs/VERIFICATION.md) for the performed checks and limitations. See the [first-time playtest report](docs/PLAYTEST.md) for reproduced issues and fixes.
 
 ## Geographic and creative boundaries
 

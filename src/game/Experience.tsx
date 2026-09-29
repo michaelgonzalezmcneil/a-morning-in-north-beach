@@ -31,6 +31,7 @@ export default function Experience() {
     game = useRef<Neighborhood | null>(null),
     dialog = useRef<HTMLDialogElement>(null),
     restore = useRef<HTMLElement | null>(null),
+    backdropDown = useRef(false),
     audio = useRef<AudioContext | null>(null);
   const [ready, setReady] = useState(false),
     [failed, setFailed] = useState(false),
@@ -41,6 +42,8 @@ export default function Experience() {
     [prefs, setPrefs] = useState<Preferences>({ outfit: "rice", sound: false }),
     [petMessage, setPetMessage] = useState(""),
     [visited, setVisited] = useState<string[]>([]);
+  const modalOpen = useRef(false);
+  modalOpen.current = Boolean(panel || story);
   const prefsRef = useRef(prefs);
   prefsRef.current = prefs;
   function tone() {
@@ -94,6 +97,7 @@ export default function Experience() {
           );
           instance.state.reduced = motion.matches;
           game.current = instance;
+          instance.pause(modalOpen.current);
           instance.state.outfit = prefsRef.current.outfit;
           setReady(true);
         } catch {
@@ -165,6 +169,7 @@ export default function Experience() {
     setPanel(p);
   }
   function close() {
+    backdropDown.current = false;
     setStory(null);
     setPanel(null);
   }
@@ -328,17 +333,18 @@ export default function Experience() {
                 : "Take your time. Look around."}
             </div>
             <div className="nb-prompt" aria-live="polite">
-              {petMessage ||
-                (spot ? (
-                  <>
-                    <kbd>E</kbd> {spot.label}
-                  </>
-                ) : (
+              {spot ? (
+                <>
+                  <kbd>E</kbd> {spot.label}
+                </>
+              ) : (
+                petMessage || (
                   <>
                     <span>↟</span> Wander a little. There’s something around the
                     corner.
                   </>
-                ))}
+                )
+              )}
             </div>
           </div>
           <div className="nb-controls">
@@ -471,8 +477,23 @@ export default function Experience() {
           e.preventDefault();
           close();
         }}
+        onPointerDown={(e) => {
+          const bounds = e.currentTarget.getBoundingClientRect();
+          backdropDown.current =
+            e.target === e.currentTarget &&
+            (e.clientX < bounds.left ||
+              e.clientX > bounds.right ||
+              e.clientY < bounds.top ||
+              e.clientY > bounds.bottom);
+        }}
+        onPointerCancel={() => {
+          backdropDown.current = false;
+        }}
         onClick={(e) => {
-          if (e.target === dialog.current) close();
+          // Opening on touch-down must not make that same gesture's release
+          // count as a new click on the modal backdrop.
+          if (backdropDown.current && e.target === dialog.current) close();
+          backdropDown.current = false;
         }}
         aria-labelledby="nb-dialog-title"
       >

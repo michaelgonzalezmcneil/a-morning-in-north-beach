@@ -1,90 +1,6 @@
-import { test, expect, type Page } from "@playwright/test";
-import { blocked, spots, destinations, type SceneId } from "../src/game/world";
-const game = (page: Page) => page.locator(".nb-canvas");
-async function pos(page: Page) {
-  return (await game(page).getAttribute("data-position"))!
-    .split(",")
-    .map(Number);
-}
-async function walk(page: Page, x: number, y: number, scene: SceneId) {
-  const [sx, sy] = await pos(page),
-    step = 8,
-    start = {
-      x: Math.round(sx / step) * step,
-      y: Math.round(sy / step) * step,
-    };
-  const key = (p: { x: number; y: number }) => `${p.x},${p.y}`;
-  const q = [start],
-    parent = new Map<string, { x: number; y: number } | null>([
-      [key(start), null],
-    ]);
-  let end;
-  for (let i = 0; i < q.length; i++) {
-    const p = q[i];
-    if (Math.hypot(p.x - x, p.y - y) < 10) {
-      end = p;
-      break;
-    }
-    for (const [dx, dy] of [
-      [step, 0],
-      [-step, 0],
-      [0, step],
-      [0, -step],
-    ]) {
-      const n = { x: p.x + dx, y: p.y + dy };
-      if (!blocked(n, scene, 14) && !parent.has(key(n))) {
-        parent.set(key(n), p);
-        q.push(n);
-      }
-    }
-  }
-  if (!end) throw Error(`No path ${scene} ${x},${y}`);
-  const route = [];
-  while (end) {
-    route.unshift(end);
-    end = parent.get(key(end)) || undefined;
-  }
-  const corners = route.filter(
-    (p, i) =>
-      i === 0 ||
-      i === route.length - 1 ||
-      (route[i - 1].x !== route[i + 1].x && route[i - 1].y !== route[i + 1].y),
-  );
-  await game(page).focus();
-  for (const target of corners) {
-    for (const axis of [0, 1]) {
-      const current = await pos(page),
-        delta = (axis ? target.y : target.x) - current[axis];
-      if (Math.abs(delta) < 4) continue;
-      const k = axis
-        ? delta > 0
-          ? "ArrowDown"
-          : "ArrowUp"
-        : delta > 0
-          ? "ArrowRight"
-          : "ArrowLeft";
-      await page.keyboard.down(k);
-      let reached = false;
-      for (let i = 0; i < 250; i++) {
-        await page.waitForTimeout(25);
-        const p = await pos(page);
-        const remaining = (axis ? target.y : target.x) - p[axis];
-        if (
-          Math.abs(remaining) < 4 ||
-          Math.sign(remaining) !== Math.sign(delta)
-        ) {
-          reached = true;
-          break;
-        }
-      }
-      await page.keyboard.up(k);
-      if (!reached)
-        throw Error(
-          `Walk stuck ${JSON.stringify(await pos(page))} toward ${JSON.stringify(target)}`,
-        );
-    }
-  }
-}
+import { test, expect } from "@playwright/test";
+import { blocked, spots, destinations } from "../src/game/world";
+import { game, pos, walk } from "./helpers";
 test("desktop: destinations, exits, interactions, repeated petting, outfit, focus and screenshots", async ({
   page,
 }) => {
@@ -158,7 +74,7 @@ test("desktop: destinations, exits, interactions, repeated petting, outfit, focu
     await expect(game(page)).toHaveAttribute("data-scene", "street");
   }
   await page.getByRole("button", { name: "Recover to a safe spot" }).click();
-  expect(await pos(page)).toEqual([440, 343]);
+  await expect.poll(() => pos(page)).toEqual([440, 343]);
   await game(page).focus();
   await page.keyboard.down("d");
   await page.waitForTimeout(100);
@@ -315,6 +231,14 @@ test("the complete non-game portfolio works with JavaScript disabled", async ({
   await expect(
     page.locator("#memories").getByText("My usual kind of pause"),
   ).toBeVisible();
+  for (const [link, section] of [
+    ["About", "about"],
+    ["Projects", "projects"],
+    ["Contact", "contact"],
+  ]) {
+    await page.getByRole("link", { name: link, exact: true }).click();
+    await expect(page.locator(`#${section}`)).toBeInViewport();
+  }
   await context.close();
 });
 

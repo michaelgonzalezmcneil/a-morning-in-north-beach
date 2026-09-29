@@ -61,6 +61,8 @@ export class Neighborhood {
       canvas.style.width = "100%";
       canvas.style.height = "100%";
       c.imageSmoothingEnabled = false;
+      this.resetInput();
+      this.camera = this.cameraTarget();
     };
     this.companion.resetBeside(start, "street");
     const observer = new ResizeObserver(resize);
@@ -68,16 +70,19 @@ export class Neighborhood {
     resize();
     this.camera = this.cameraTarget();
     const down = (e: KeyboardEvent) => {
+      const target = e.target instanceof HTMLElement ? e.target : null;
       if (
         this.paused ||
         e.altKey ||
         e.ctrlKey ||
         e.metaKey ||
-        (e.target instanceof HTMLElement &&
-          e.target.closest("button,a,input,dialog"))
+        target?.closest('input,textarea,select,[contenteditable="true"],dialog')
       )
         return;
       const k = e.key.toLowerCase();
+      // Keep native Space activation on controls while movement shortcuts
+      // continue working after a panel restores focus to its trigger.
+      if (target?.closest("button,a") && k === " ") return;
       if (
         [
           "w",
@@ -152,6 +157,11 @@ export class Neighborhood {
         this.prompt = spot?.id || "";
         this.onPrompt(spot);
       }
+      // At the bottom camera limit the avatar can walk underneath the HUD.
+      // Move the existing instruction to the top before it covers their feet.
+      canvas.dataset.promptTop = String(
+        this.state.player.y - this.camera.y > this.viewport.y - 52,
+      );
       canvas.dataset.scene = this.state.scene;
       canvas.dataset.position = `${this.state.player.x.toFixed(1)},${this.state.player.y.toFixed(1)}`;
       canvas.dataset.bella = `${this.state.bella.x.toFixed(1)},${this.state.bella.y.toFixed(1)}`;

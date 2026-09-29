@@ -113,3 +113,25 @@ test("corrupt, unavailable, and malformed storage gracefully use defaults", () =
     { outfit: "sweater", sound: true },
   );
 });
+
+test("the avatar and Bella stay below the visible back wall in every room", () => {
+  for (const scene of ["trieste", "books", "vesuvio", "tower"]) {
+    let player = { x: 53, y: 313 };
+    const dog = new Companion(player);
+    dog.resetBeside(player, scene);
+    for (let i = 0; i < 130; i++) {
+      const next = move(player, 0, -3, scene);
+      dog.follow(player, next);
+      player = next;
+      assert.ok(player.y - 34 >= 70, `${scene}: Michael crosses the back wall`);
+      assert.ok(
+        dog.position.y - 24 >= 70,
+        `${scene}: Bella crosses the back wall`,
+      );
+      assert.equal(blocked(dog.position, scene), false);
+    }
+    assert.ok(player.y < 110, "can still approach the back wall");
+  }
+  const outside = move({ x: 870, y: 350 }, 0, -1000, "street");
+  assert.ok(outside.y >= 34, "head stays inside the outdoor camera bounds");
+});
