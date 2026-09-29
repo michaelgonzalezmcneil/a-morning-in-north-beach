@@ -56,7 +56,7 @@ Phaser owns the game loop and displays a procedural CanvasTexture. All artwork i
 
 **Michael:** change colors in `appearance.michael` in `src/game/config.ts`; change sprite geometry, walking frames and the portrait in `src/game/render.ts`. The default uses plain RICE lettering, with no university logo.
 
-**Bella:** change `appearance.bella` in `src/game/config.ts`. Her current honey/cream coat is provisional. Size, fur silhouette and wagging are in `bella()` in `render.ts`.
+**Bella:** change `appearance.bella` in `src/game/config.ts`. Her current honey/cream coat is provisional. Size, fur silhouette, four-direction walking and wagging are in `bella()` in `render.ts`. Follow/rest gaps, idle timing and pet duration are in `companion.ts`. See [Bella’s behavior and checks](docs/BELLA.md).
 
 **Portfolio:** the existing workspace supplied `mg188@rice.edu`. Update `portfolio.email` and `portfolio.links` in `config.ts`, and the contact section of `portfolio.html` so the JavaScript-free version stays current. Only verified HTTPS links are shown in the React panel. Add verified biography/project details in `Portfolio.tsx` and `portfolio.html`. Missing résumé, social and public RiceWalk links are intentionally omitted.
 
@@ -71,7 +71,7 @@ npm run build
 npm run test:browser
 ```
 
-Unit tests check reachability, exits, return spawns, collision tunnelling, diagonal speed, companion turns, and bad storage. Browser tests drive real keyboard input and Chromium touch events against the production build. Screenshots are written to `docs/screenshots/`. See [verification notes](docs/VERIFICATION.md) for the performed checks and limitations. See the [first-time playtest report](docs/PLAYTEST.md) for reproduced issues and fixes.
+Unit tests check reachability, exits, return spawns, collision tunnelling, diagonal speed, companion turns, and bad storage. Browser tests drive real keyboard input and Chromium touch events against the production build. Screenshots are written to `docs/screenshots/`. See [Bella’s latest checks](docs/BELLA.md) and the [original verification notes](docs/VERIFICATION.md) for the performed checks and limitations. See the [first-time playtest report](docs/PLAYTEST.md) for reproduced issues and fixes.
 
 ## Geographic and creative boundaries
 

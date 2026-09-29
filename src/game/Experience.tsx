@@ -32,7 +32,8 @@ export default function Experience() {
     dialog = useRef<HTMLDialogElement>(null),
     restore = useRef<HTMLElement | null>(null),
     backdropDown = useRef(false),
-    audio = useRef<AudioContext | null>(null);
+    audio = useRef<AudioContext | null>(null),
+    lastTone = useRef(-Infinity);
   const [ready, setReady] = useState(false),
     [failed, setFailed] = useState(false),
     [scene, setScene] = useState<SceneId>("street"),
@@ -47,7 +48,9 @@ export default function Experience() {
   const prefsRef = useRef(prefs);
   prefsRef.current = prefs;
   function tone() {
-    if (!prefsRef.current.sound) return;
+    if (!prefsRef.current.sound || performance.now() - lastTone.current < 650)
+      return;
+    lastTone.current = performance.now();
     try {
       const ctx = audio.current ?? new AudioContext();
       audio.current = ctx;

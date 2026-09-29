@@ -68,8 +68,10 @@ test("Bella follows a safe recorded route through a tight turn and resets safely
     [0, -140],
   ]) {
     for (let i = 0; i < 100; i++) {
-      const next = move(p, dx / 100, dy / 100, "street");
-      dog.follow(p, next);
+      const next = move(p, dx / 100, dy / 100, "street", (point) =>
+        dog.record(point),
+      );
+      dog.update(1 / 60, next, true, false, false, false);
       p = next;
       assert.equal(blocked(dog.position, "street"), false);
     }
@@ -120,8 +122,8 @@ test("the avatar and Bella stay below the visible back wall in every room", () =
     const dog = new Companion(player);
     dog.resetBeside(player, scene);
     for (let i = 0; i < 130; i++) {
-      const next = move(player, 0, -3, scene);
-      dog.follow(player, next);
+      const next = move(player, 0, -3, scene, (point) => dog.record(point));
+      dog.update(1 / 60, next, true, false, false, false);
       player = next;
       assert.ok(player.y - 34 >= 70, `${scene}: Michael crosses the back wall`);
       assert.ok(

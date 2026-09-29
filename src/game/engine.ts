@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { Companion } from "./companion";
+import { Companion, PET_DURATION } from "./companion";
 import { move, velocity } from "./movement";
 import { render, type RenderState } from "./render";
 import {
@@ -16,6 +16,7 @@ export class Neighborhood {
     scene: "street",
     player: { ...start },
     bella: { ...start },
+    bellaPose: { mode: "watch", facing: 1, stride: 0 },
     direction: 0,
     walking: false,
     time: 0,
@@ -65,6 +66,8 @@ export class Neighborhood {
       this.camera = this.cameraTarget();
     };
     this.companion.resetBeside(start, "street");
+    this.state.bella = this.companion.position;
+    this.state.bellaPose = { ...this.companion.pose };
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
     resize();
@@ -123,8 +126,8 @@ export class Neighborhood {
       if (this.disposed) return;
       const dt = Math.min((now - (this.last || now)) / 1000, 0.035);
       this.last = now;
-      this.state.time += dt;
       if (!this.paused) {
+        this.state.time += dt;
         const active = (...k: string[]) =>
           k.some(
             (a) => this.keys.has(a) || [...this.touch.values()].includes(a),
@@ -135,10 +138,10 @@ export class Neighborhood {
           dt,
         );
         const before = this.state.player;
-        const after = move(before, v.x, v.y, this.state.scene);
-        this.companion.follow(before, after);
+        const after = move(before, v.x, v.y, this.state.scene, (point) =>
+          this.companion.record(point),
+        );
         this.state.player = after;
-        this.state.bella = this.companion.position;
         this.state.walking =
           Math.hypot(after.x - before.x, after.y - before.y) > 0.01;
         if (this.state.walking) {
@@ -147,6 +150,16 @@ export class Neighborhood {
             Math.abs(v.x) > Math.abs(v.y) ? (v.x > 0 ? 1 : 2) : v.y > 0 ? 0 : 3;
         }
         this.state.pet = Math.max(0, this.state.pet - dt);
+        this.companion.update(
+          dt,
+          after,
+          this.state.walking,
+          this.state.sitting,
+          this.state.pet > 0,
+          this.state.reduced,
+        );
+        this.state.bella = this.companion.position;
+        this.state.bellaPose = { ...this.companion.pose };
       } else this.state.walking = false;
       const target = this.cameraTarget();
       const factor = this.state.reduced ? 1 : Math.min(1, dt * 8);
@@ -166,6 +179,11 @@ export class Neighborhood {
       canvas.dataset.position = `${this.state.player.x.toFixed(1)},${this.state.player.y.toFixed(1)}`;
       canvas.dataset.bella = `${this.state.bella.x.toFixed(1)},${this.state.bella.y.toFixed(1)}`;
       canvas.dataset.pet = String(this.state.pet > 0);
+      canvas.dataset.bellaMode = this.state.bellaPose.mode;
+      canvas.dataset.bellaFacing = String(this.state.bellaPose.facing);
+      canvas.dataset.bellaStride = this.state.bellaPose.stride.toFixed(2);
+      canvas.dataset.sitting = String(this.state.sitting);
+      canvas.dataset.reduced = String(this.state.reduced);
       canvas.dataset.outfit = this.state.outfit;
       canvas.dataset.paused = String(this.paused);
       render(c, this.state, this.viewport, this.camera);
@@ -227,7 +245,11 @@ export class Neighborhood {
   pause(value: boolean) {
     this.paused = value;
     this.resetInput();
-    if (!value) this.state.sitting = false;
+    if (value) {
+      this.state.pet = 0;
+      this.companion.hold(this.state.player, this.state.sitting);
+      this.state.bellaPose = { ...this.companion.pose };
+    }
   }
   interact() {
     if (this.paused) return;
@@ -249,8 +271,11 @@ export class Neighborhood {
     }
     this.state.scene = scene;
     this.state.player = p;
-    this.state.bella = { ...p };
     this.companion.resetBeside(p, scene);
+    this.state.bella = this.companion.position;
+    this.state.bellaPose = { ...this.companion.pose };
+    this.state.sitting = false;
+    this.state.walking = false;
     this.state.direction = scene === "street" ? 0 : 3;
     this.state.pet = 0;
     this.camera = this.cameraTarget();
@@ -263,13 +288,21 @@ export class Neighborhood {
     this.state.player =
       this.state.scene === "street" ? { ...start } : { x: 260, y: 313 };
     this.companion.resetBeside(this.state.player, this.state.scene);
-    this.state.bella = { ...this.state.player };
+    this.state.bella = this.companion.position;
+    this.state.bellaPose = { ...this.companion.pose };
+    this.state.pet = 0;
+    this.state.sitting = false;
+    this.state.walking = false;
     this.camera = this.cameraTarget();
     this.resetInput();
   }
   pet() {
     if (this.paused) return;
-    this.state.pet = 1.5;
+    const dx = this.state.bella.x - this.state.player.x;
+    const dy = this.state.bella.y - this.state.player.y;
+    this.state.direction =
+      Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 2) : dy > 0 ? 0 : 3;
+    this.state.pet = PET_DURATION;
     this.onPet();
   }
   destroy() {

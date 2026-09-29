@@ -1,4 +1,5 @@
 import { appearance } from "./config";
+import { PET_DURATION, type CompanionPose } from "./companion";
 import {
   destinations,
   dimensions,
@@ -11,6 +12,7 @@ export type RenderState = {
   scene: SceneId;
   player: Point;
   bella: Point;
+  bellaPose: CompanionPose;
   direction: number;
   walking: boolean;
   time: number;
@@ -688,20 +690,25 @@ export function michael(
   state: Pick<
     RenderState,
     "outfit" | "walking" | "direction" | "time" | "pet" | "sitting" | "reduced"
-  >,
+  > & { petSide?: number },
   scale = 1,
 ) {
   c.save();
   c.translate(Math.round(x), Math.round(y));
   c.scale(scale, scale);
   const a = appearance.michael;
-  const step = state.walking ? (Math.sin(state.time * 13) > 0 ? 2 : -2) : 0;
-  const lean =
-    state.pet > 0
-      ? 2
-      : !state.walking && !state.reduced && Math.sin(state.time * 1.4) > 0.8
-        ? 1
-        : 0;
+  const step =
+    state.walking && !state.reduced
+      ? Math.sin(state.time * 13) > 0
+        ? 2
+        : -2
+      : 0;
+  const reaching = state.pet > PET_DURATION - 0.5;
+  const lean = reaching
+    ? 2
+    : !state.walking && !state.reduced && Math.sin(state.time * 1.4) > 0.8
+      ? 1
+      : 0;
   ellipse(c, 0, 1, 9, 3, "#3d56564d");
   rect(c, -5, -8, 4, 8 + (state.sitting ? -3 : step), a.jeans);
   rect(c, 2, -8, 4, 8 - (state.sitting ? 3 : step), a.jeans);
@@ -712,7 +719,7 @@ export function michael(
   rect(c, -3, -22, 6, 3, a.skin);
   rect(c, -7, -20, 2, 11, state.outfit === "rice" ? "#395970" : "#96563f");
   rect(c, -10, -20 + lean, 3, 12, a.skin);
-  rect(c, 7, -20 + lean, 3, state.pet > 0 ? 6 : 12, a.skin);
+  rect(c, 7, -20 + lean, 3, 12, a.skin);
   rect(c, -6, -32 + lean, 12, 12, a.skin);
   rect(c, -7, -34 + lean, 14, 5, a.hair);
   rect(c, -7, -31 + lean, 3, 7, a.hair);
@@ -729,11 +736,28 @@ export function michael(
     label(c, "RICE", 0, -12, 5, "#e7e8d3");
   if (state.outfit === "sweater") {
     rect(c, -10, -20 + lean, 3, 8, a.sweater);
-    rect(c, 7, -20 + lean, 3, state.pet > 0 ? 4 : 8, a.sweater);
+    rect(c, 7, -20 + lean, 3, 8, a.sweater);
     if (state.direction !== 3) {
       rect(c, -1, -20, 3, 8, "#804c3e");
       rect(c, 0, -18, 1, 1, "#e2c297");
       rect(c, 0, -15, 1, 1, "#e2c297");
+    }
+  }
+  if (reaching) {
+    const side = state.petSide ?? 1;
+    const stroke = state.reduced
+      ? 0
+      : Math.sin((PET_DURATION - state.pet) * 18) > 0
+        ? 1
+        : 0;
+    if (state.direction === 0) {
+      rect(c, side < 0 ? -6 : 3, -8 + stroke, 4, 6, a.skin);
+      rect(c, side < 0 ? -5 : 2, -3 + stroke, 4, 2, a.skin);
+    } else if (state.direction === 3) {
+      rect(c, side < 0 ? -10 : 7, -25 + stroke, 3, 6, a.skin);
+    } else {
+      rect(c, side < 0 ? -14 : 8, -13 + stroke, 6, 3, a.skin);
+      rect(c, side < 0 ? -16 : 12, -11 + stroke, 4, 2, a.skin);
     }
   }
   rect(c, -4, -32 + lean, 7, 1, "#74523b");
@@ -746,44 +770,76 @@ export function bella(
   t: number,
   pet: boolean,
   reduced: boolean,
+  pose: CompanionPose = { mode: "watch", facing: 0, stride: 0 },
 ) {
   const a = appearance.bella;
+  const walking = pose.mode === "follow",
+    settled = pose.mode === "settled";
+  const step = walking && !reduced ? (Math.sin(pose.stride) > 0 ? 1 : -1) : 0;
+  const bob = walking && !reduced && Math.sin(pose.stride * 2) > 0 ? 1 : 0;
+  const dip =
+    pose.mode === "sniff" && !reduced ? 3 + (Math.sin(t * 7) > 0 ? 1 : 0) : 0;
+  const wag =
+    !reduced && (pet || walking)
+      ? Math.sin(pet ? t * 17 : pose.stride) > 0
+        ? 1
+        : -1
+      : 0;
+  const side = pose.facing === 1 || pose.facing === 2;
   c.save();
   c.translate(Math.round(x), Math.round(y));
-  ellipse(c, 0, 1, 10, 3, "#3d56564d");
-  rect(c, -7, -10, 13, 9, a.coat);
-  rect(c, -9, -8, 3, 5, a.light);
-  rect(c, -5, -2, 3, 5, a.ears);
-  rect(c, 3, -2, 3, 5, a.ears);
-  rect(c, 2, -17, 10, 11, a.coat);
-  rect(c, 0, -21, 3, 9, a.ears);
-  rect(c, -1, -19, 5, 6, a.coat);
-  rect(c, 11, -21, 3, 9, a.ears);
-  rect(c, 10, -19, 5, 6, a.coat);
-  rect(c, 1, -18, 1, 4, a.ears);
-  rect(c, 12, -18, 1, 4, a.ears);
-  rect(c, 1, -17, 3, 8, a.light);
-  rect(c, 11, -16, 3, 8, a.light);
-  rect(c, 5, -9, 6, 3, a.light);
-  rect(c, 5, -13, 1, 2, "#353f36");
-  rect(c, 10, -13, 1, 2, "#353f36");
-  rect(c, 8, -10, 2, 2, "#353f36");
-  // Layered cheek fringe, chest ruff and feathered haunches.
-  rect(c, 1, -8, 12, 3, a.light);
-  rect(c, 3, -5, 8, 2, a.light);
-  rect(c, -1, -10, 3, 4, a.light);
-  rect(c, 12, -11, 3, 4, a.light);
-  rect(c, -7, -4, 2, 4, a.light);
-  rect(c, -3, -4, 2, 3, a.light);
-  rect(c, 0, -2, 2, 2, a.light);
-  rect(c, 7, -3, 2, 3, a.light);
-  const wag = !reduced && Math.sin(t * (pet ? 30 : 3)) > 0 ? 3 : 0;
-  rect(c, -12, -14 + wag, 5, 10, a.light);
-  rect(c, -14, -16 + wag, 5, 5, a.light);
-  rect(c, -15, -14 + wag, 2, 3, a.light);
-  rect(c, -12, -18 + wag, 5, 2, a.light);
-  rect(c, -8, -17 + wag, 3, 3, a.light);
-  rect(c, -10, -13 + wag, 2, 5, a.coat);
+  ellipse(c, 0, 1, 9, 3, "#3d56564d");
+  if (pose.facing === 2) c.scale(-1, 1);
+  // Tail curls over the back; separated tufts read as long fur, not a solid flag.
+  const tx = side ? -9 : 7,
+    ty = -12 + (settled ? 3 : 0) + wag;
+  rect(c, tx, ty, 4, 8, a.light);
+  rect(c, tx - 3, ty - 3, 5, 5, a.light);
+  rect(c, tx - 4, ty - 1, 2, 3, a.light);
+  rect(c, tx - 1, ty - 5, 5, 3, a.light);
+  rect(c, tx + 3, ty - 4, 3, 3, a.light);
+  rect(c, tx + 1, ty - 1, 2, 5, a.coat);
+  // Four alternating feet, driven by actual distance along the trail.
+  for (const [fx, phase] of [
+    [-5, 1],
+    [3, -1],
+    [-2, -1],
+    [6, 1],
+  ]) {
+    rect(c, fx, -3, 2, settled ? 3 : 5 + step * phase, a.ears);
+    rect(c, fx, -1 + (settled ? 1 : step * phase), 3, 2, a.light);
+  }
+  rect(c, -7, -10 + (settled ? 3 : bob), 14, 8, a.coat);
+  rect(c, -7, -7 + (settled ? 3 : bob), 3, 5, a.light);
+  rect(c, -4, -5 + (settled ? 3 : bob), 2, 4, a.light);
+  const hx = side ? 5 : 0,
+    hy = -16 + dip + bob + (settled ? 4 : 0);
+  rect(c, hx - 5, hy, 10, 10, a.coat);
+  // Broad ear bases, dark inner ears, and asymmetric feather tips.
+  for (const ex of [hx - 6, hx + 3]) {
+    rect(c, ex, hy - 5, 3, 7, a.coat);
+    rect(c, ex - 1, hy - 2, 5, 5, a.coat);
+    rect(c, ex + 1, hy - 3, 1, 4, a.ears);
+  }
+  rect(c, hx - 7, hy + 5, 3, 5, a.light);
+  rect(c, hx + 5, hy + 4, 3, 6, a.light);
+  rect(c, hx - 4, hy + 8, 9, 3, a.light);
+  rect(c, hx - 2, hy + 11, 5, 2, a.light);
+  if (pose.facing !== 3) {
+    if (side) {
+      rect(c, hx + 1, hy + 4, 2, 2, "#353f36");
+      rect(c, hx + 4, hy + 7, 5, 3, a.light);
+      rect(c, hx + 8, hy + 7, 2, 2, "#353f36");
+    } else {
+      rect(c, hx - 3, hy + 4, 2, 2, "#353f36");
+      rect(c, hx + 2, hy + 4, 2, 2, "#353f36");
+      rect(c, hx - 2, hy + 7, 5, 3, a.light);
+      rect(c, hx, hy + 7, 2, 2, "#353f36");
+    }
+  } else {
+    rect(c, -3, hy + 2, 6, 6, a.coat);
+    rect(c, -2, hy + 9, 5, 3, a.light);
+  }
   c.restore();
 }
 export function render(
@@ -814,11 +870,26 @@ export function render(
     }
   }
   const actors = [
-    { y: player.y, draw: () => michael(c, player.x, player.y, state) },
+    {
+      y: player.y,
+      draw: () =>
+        michael(c, player.x, player.y, {
+          ...state,
+          petSide: state.bella.x < player.x ? -1 : 1,
+        }),
+    },
     {
       y: state.bella.y,
       draw: () =>
-        bella(c, state.bella.x, state.bella.y, time, state.pet > 0, reduced),
+        bella(
+          c,
+          state.bella.x,
+          state.bella.y,
+          time,
+          state.pet > 0,
+          reduced,
+          state.bellaPose,
+        ),
     },
   ];
   actors.sort((a, b) => a.y - b.y).forEach((a) => a.draw());
@@ -826,9 +897,9 @@ export function render(
     label(
       c,
       "♥",
-      state.bella.x + 2,
-      state.bella.y - 29 - (reduced ? 0 : (1 - state.pet / 1.5) * 12),
-      15,
+      state.bella.x + (player.x >= state.bella.x ? -12 : 12),
+      state.bella.y - 25 - (reduced ? 0 : (1 - state.pet / PET_DURATION) * 5),
+      7,
       "#ac5c58",
     );
   }
