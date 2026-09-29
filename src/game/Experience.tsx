@@ -129,7 +129,7 @@ export default function Experience() {
       c.clearRect(0, 0, 112, 104);
       michael(
         c,
-        44,
+        30,
         86,
         {
           outfit: prefs.outfit,
@@ -143,8 +143,8 @@ export default function Experience() {
         2,
       );
       c.save();
-      c.translate(79, 86);
-      c.scale(1.4, 1.4);
+      c.translate(80, 86);
+      c.scale(2, 2);
       bella(c, 0, 0, 0, false, true);
       c.restore();
     }
@@ -426,7 +426,7 @@ export default function Experience() {
             <div>
               <button
                 title="Switch outfit"
-                aria-label={`Switch outfit. Currently ${prefs.outfit === "rice" ? "Rice T-shirt" : "rust sweater"}`}
+                aria-label={`Switch outfit. Currently ${prefs.outfit === "rice" ? "Rice T-shirt" : "rust henley"}`}
                 onClick={() =>
                   update({
                     ...prefs,
@@ -436,7 +436,7 @@ export default function Experience() {
               >
                 <Shirt size={15} />
                 <span>
-                  {prefs.outfit === "rice" ? "Rice tee" : "Rust sweater"}
+                  {prefs.outfit === "rice" ? "Rice tee" : "Rust henley"}
                 </span>
               </button>
               <button

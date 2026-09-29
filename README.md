@@ -26,7 +26,7 @@ Serve the generated `dist/` directory with any static host. Both `index.html` an
 - Interact: E / Space / Interact, near a glowing marker.
 - Pet Bella: P / Pet Bella; repeat as often as you like.
 - Escape closes dialogue and portfolio panels.
-- Shirt button alternates Rice T-shirt and rust sweater.
+- Shirt button alternates Rice T-shirt and rust henley.
 - Speaker toggles the optional petting chime. Default is off; playback requires a user action.
 - Circular arrow returns both characters to a safe position in the current scene.
 

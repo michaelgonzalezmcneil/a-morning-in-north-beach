@@ -64,15 +64,29 @@ test("desktop: destinations, exits, interactions, repeated petting, outfit, focu
       expect(await pos(page)).toEqual(p);
       await page.keyboard.press("Escape");
     }
-    if (d.id === "trieste")
-      await page.screenshot({
-        path: "docs/screenshots/cafe.png",
-        fullPage: true,
-      });
+    await page.screenshot({
+      path: `docs/screenshots/${d.id === "trieste" ? "cafe" : d.id}.png`,
+      fullPage: true,
+    });
+    const desktopCanvasWidth = (await game(page).getAttribute("width"))!;
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(250);
+    await page.screenshot({
+      path: `docs/screenshots/art-mobile-${d.id}.png`,
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 1440, height: 1050 });
+    // Resize clears held input; wait for it before starting the next key press.
+    await expect(game(page)).toHaveAttribute("width", desktopCanvasWidth);
     await walk(page, 260, 328, d.id);
     await page.keyboard.press(" ");
     await expect(game(page)).toHaveAttribute("data-scene", "street");
   }
+  await page.getByRole("button", { name: /Switch outfit/ }).click();
+  await page.screenshot({
+    path: "docs/screenshots/henley.png",
+    fullPage: true,
+  });
   await page.getByRole("button", { name: "Recover to a safe spot" }).click();
   await expect.poll(() => pos(page)).toEqual([440, 343]);
   await game(page).focus();

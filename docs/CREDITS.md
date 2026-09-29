@@ -2,7 +2,7 @@
 
 ## Art and sound
 
-All game graphics, avatar portraits, building silhouettes, plants, books, pigeons, fog and hearts are original procedural pixel art in `src/game/render.ts`. The favicon is an original SVG. No commercial game sprites, downloaded asset packs, photographs, or university logos are used. The optional short chime is synthesized locally with Web Audio. There are no external media requests.
+All game graphics, avatar portraits, building silhouettes, plants, books, pigeons, fog and hearts are original procedural pixel art in `src/game/render.ts`. The art-direction pass adds original 3×5 pixel lettering, stepped light and mist, café equipment and steaming cups, book bindings, alley paving, stained-glass colors, a bay panorama, a buttoned henley, and Bella’s feathered coat. These are all code-drawn; no new external assets were used. The panorama and shopfront details are artistic interpretations, not architectural reproductions. The favicon is an original SVG. No commercial game sprites, downloaded asset packs, photographs, or university logos are used. The optional short chime is synthesized locally with Web Audio. There are no external media requests.
 
 The UI uses locally available Georgia and Arial (system fonts; no redistributed font files). Lucide icons are bundled from `lucide-react` under the ISC license. React and React DOM use MIT; Vite and TypeScript use MIT and Apache-2.0 respectively; Phaser uses MIT. Dependency license files ship in their npm packages; versions are pinned by `package-lock.json`.
 

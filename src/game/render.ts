@@ -40,6 +40,41 @@ function rect(
   c.fillStyle = color;
   c.fillRect(Math.round(x), Math.round(y), w, h);
 }
+// Original 3×5 lettering: the same logical pixel grid as the scenery.
+const glyphs: Record<string, string> = {
+  A: "010101111101101",
+  B: "110101110101110",
+  C: "011100100100011",
+  D: "110101101101110",
+  E: "111100110100111",
+  F: "111100110100100",
+  G: "011100101101011",
+  H: "101101111101101",
+  I: "111010010010111",
+  J: "001001001101010",
+  K: "101101110101101",
+  L: "100100100100111",
+  M: "101111111101101",
+  N: "101111111111101",
+  O: "010101101101010",
+  P: "110101110100100",
+  Q: "010101101111011",
+  R: "110101110101101",
+  S: "011100010001110",
+  T: "111010010010010",
+  U: "101101101101111",
+  V: "101101101101010",
+  W: "101101111111101",
+  X: "101101010101101",
+  Y: "101101010010010",
+  Z: "111001010100111",
+  ".": "000000000000010",
+  "↓": "010010010111010",
+  "↗": "111001101100100",
+  "⌄": "000000101010000",
+  "♥": "000101111111010",
+  "—": "000000111000000",
+};
 function label(
   c: CanvasRenderingContext2D,
   text: string,
@@ -48,10 +83,27 @@ function label(
   size = 9,
   color = C.ink,
 ) {
-  c.fillStyle = color;
-  c.font = `${size}px monospace`;
-  c.textAlign = "center";
-  c.fillText(text, Math.round(x), Math.round(y));
+  const scale = size >= 9 ? 2 : 1;
+  const letters = text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase();
+  const start = Math.round(x - ((letters.length * 4 - 1) * scale) / 2);
+  [...letters].forEach((letter, i) => {
+    const glyph = glyphs[letter];
+    if (!glyph) return;
+    [...glyph].forEach((on, j) => {
+      if (on === "1")
+        rect(
+          c,
+          start + i * 4 * scale + (j % 3) * scale,
+          y - 5 * scale + Math.floor(j / 3) * scale,
+          scale,
+          scale,
+          color,
+        );
+    });
+  });
 }
 function ellipse(
   c: CanvasRenderingContext2D,
@@ -61,10 +113,44 @@ function ellipse(
   ry: number,
   color: string,
 ) {
-  c.fillStyle = color;
-  c.beginPath();
-  c.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
-  c.fill();
+  // Stepped scanlines keep shadows, light pools and mist on the pixel grid.
+  for (let row = -Math.ceil(ry); row <= Math.ceil(ry); row++) {
+    const width = Math.floor(
+      rx * Math.sqrt(Math.max(0, 1 - (row * row) / (ry * ry))),
+    );
+    if (width) rect(c, x - width, y + row, width * 2, 1, color);
+  }
+}
+function cup(
+  c: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  t: number,
+  matcha = false,
+) {
+  ellipse(c, x + 5, y + 8, 9, 3, "#e7d5ac");
+  rect(c, x, y, 10, 8, "#fff0cc");
+  rect(c, x + 10, y + 2, 3, 4, "#fff0cc");
+  rect(c, x + 2, y, 6, 2, matcha ? "#8a9b65" : "#745440");
+  const drift = Math.sin(t * 1.2) > 0 ? 1 : 0;
+  rect(c, x + 3, y - 5, 1, 3, "#f7e7bf99");
+  rect(c, x + 4 + drift, y - 9, 1, 3, "#f7e7bf66");
+}
+function rug(
+  c: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  color: string,
+) {
+  rect(c, x, y, w, h, color);
+  rect(c, x + 3, y + 3, w - 6, 1, "#dac295");
+  rect(c, x + 3, y + h - 4, w - 6, 1, "#dac295");
+  for (let i = 7; i < w - 4; i += 10) {
+    rect(c, x + i, y + 7, 3, 2, "#dac29577");
+    rect(c, x + i, y + h - 9, 3, 2, "#dac29577");
+  }
 }
 function plant(
   c: CanvasRenderingContext2D,
@@ -183,6 +269,69 @@ function building(
         ["#c88b71", "#c5be8b", "#86a89c"][i % 3],
       );
   }
+  if (d.id === "books") {
+    for (let i = 0; i < 4; i++) {
+      const wx = x + 16 + (i * (w - 30)) / 4;
+      rect(c, wx - 4, y + 38, 32, 3, "#eee4c6");
+      rect(c, wx - 4, y + 70, 32, 3, "#eee4c6");
+    }
+  }
+  if (d.id === "vesuvio") {
+    for (let i = 0; i < 4; i++) {
+      const wx = x + 16 + (i * (w - 30)) / 4;
+      rect(c, wx - 3, y + 38, 30, 3, "#bdab79");
+      rect(c, wx + 4, y + 43, 3, 22, "#a98f63");
+      rect(c, wx + 17, y + 43, 3, 22, "#a98f63");
+    }
+  }
+  // Distinct shopfront joinery, all inside the existing building footprints.
+  if (d.id === "trieste") {
+    rect(c, x + 6, y + 104, w - 12, 3, "#425f52");
+    for (const px of [x + 15, x + 63]) {
+      rect(c, px, dy + 22, 34, 6, "#805e48");
+      cup(c, px + 8, dy + 17, 0);
+    }
+    rect(c, x + w - 61, dy + 3, 44, 24, "#714f3f");
+    label(c, "CAFFE", x + w - 39, dy + 13, 7, "#efd195");
+    label(c, "ESPRESSO", x + w - 39, dy + 23, 7, "#efd195");
+    rect(c, x + 3, y + 34, w - 6, 3, "#cfaa80");
+  } else if (d.id === "books") {
+    rect(c, x + 8, y + 35, w - 16, 4, "#f0e4bd");
+    rect(c, x + w - 19, y + 40, 15, 62, "#eee3bf");
+    [..."BOOKS"].forEach((v, i) =>
+      label(c, v, x + w - 11, y + 49 + i * 10, 7, "#455a51"),
+    );
+    for (const px of [x + 15, x + 63]) {
+      rect(c, px, dy + 18, 34, 10, "#52675c");
+      for (let i = 0; i < 7; i++)
+        rect(
+          c,
+          px + 2 + i * 4,
+          dy + 19 + (i % 2),
+          3,
+          7,
+          ["#b77961", "#dfcea5", "#799586"][i % 3],
+        );
+    }
+    label(c, "BOOKS • POETRY", x + w / 2, y + 77, 7, "#42574f");
+  } else {
+    rect(c, x + 5, y + 35, w - 10, 4, "#c2a26f");
+    rect(c, x + w - 60, dy + 2, 46, 27, "#3b5753");
+    for (let i = 0; i < 4; i++)
+      rect(
+        c,
+        x + w - 57 + i * 11,
+        dy + 5,
+        7,
+        18,
+        ["#b58458", "#869582", "#b16b58", "#d0b777"][i],
+      );
+    label(c, "CAFE", x + w - 36, dy + 26, 7, "#f4dbac");
+    // A small original sunburst medallion and painted frieze.
+    for (let i = 0; i < 8; i++)
+      rect(c, x + 10 + i * 23, y + 73, 12, 3, i % 2 ? "#b7a674" : "#596f61");
+    rect(c, x + w - 14, y + 7, 7, 21, "#b98859");
+  }
   plant(c, x - 12, y + h - 1, true);
   plant(c, x + w + 10, y + h - 1);
 }
@@ -193,22 +342,14 @@ function street(c: CanvasRenderingContext2D, t: number, reduced: boolean) {
       if ((x * 7 + y * 13) % 11 < 4) rect(c, x + (y % 5), y, 3, 1, "#a7bcb03e");
     }
   // Columbus runs diagonally; Vallejo crosses east-west. All distances are compressed.
-  c.fillStyle = C.pavement;
-  c.beginPath();
-  c.moveTo(115, 0);
-  c.lineTo(239, 0);
-  c.lineTo(501, 650);
-  c.lineTo(351, 650);
-  c.closePath();
-  c.fill();
-  c.fillStyle = C.road;
-  c.beginPath();
-  c.moveTo(139, 0);
-  c.lineTo(214, 0);
-  c.lineTo(470, 650);
-  c.lineTo(382, 650);
-  c.closePath();
-  c.fill();
+  for (let y = 0; y < 650; y++) {
+    const left = 115 + (236 * y) / 650,
+      right = 239 + (262 * y) / 650;
+    rect(c, left, y, Math.round(right - left), 1, C.pavement);
+    const roadLeft = 139 + (243 * y) / 650,
+      roadRight = 214 + (256 * y) / 650;
+    rect(c, roadLeft, y, Math.round(roadRight - roadLeft), 1, C.road);
+  }
   rect(c, 0, 285, 665, 67, C.pavement);
   rect(c, 0, 301, 665, 34, C.road);
   rect(c, 305, 327, 53, 288, C.pavement);
@@ -224,7 +365,25 @@ function street(c: CanvasRenderingContext2D, t: number, reduced: boolean) {
     rect(c, 178 + i * 17, 28 + i * 44, 2, 17, "#ccd1b481");
   for (let x = 20; x < 650; x += 40) rect(c, x, 317, 17, 1, "#cbd0b7");
   rect(c, 301, 420, 65, 35, "#c9c0a5");
-  for (let i = 0; i < 8; i++) rect(c, 304 + i * 8, 421, 1, 32, "#b2ad96");
+  for (let row = 0; row < 5; row++)
+    for (let col = 0; col < 8; col++)
+      rect(
+        c,
+        302 + col * 8 + (row % 2) * 3,
+        421 + row * 7,
+        6,
+        5,
+        (row + col) % 3 ? "#c5b798" : "#b5a88e",
+      );
+  rect(c, 303, 420, 62, 2, "#827e68");
+  for (let i = 0; i < 5; i++) {
+    rect(c, 305 + i * 12, 417, 5, 3, "#ecce91");
+    rect(c, 307 + i * 12, 415, 1, 2, "#657368");
+  }
+  // Painted wall tiles and a climbing vine frame the alley, leaving its path clear.
+  for (let i = 0; i < 5; i++)
+    rect(c, 303, 428 + i * 5, 2, 3, i % 2 ? "#657d69" : "#b57961");
+  plant(c, 357, 454);
   // Quiet residential context, with bay windows and terracotta roof lines.
   for (const r of [
     { x: 105, y: 82, w: 150, h: 61 },
@@ -284,19 +443,29 @@ function shelf(
   w: number,
   h: number,
 ) {
-  rect(c, x, y, w, h, "#6f6250");
-  for (let row = 0; row < 2; row++) {
-    for (let i = 0; i < (w - 8) / 7; i++)
+  rect(c, x + 3, y + h, w - 3, 3, "#6d584455");
+  rect(c, x, y, w, h, "#69523e");
+  const rows = h > 30 ? 2 : 1,
+    rowHeight = Math.floor((h - 5) / rows);
+  for (let row = 0; row < rows; row++) {
+    const baseline = y + 3 + (row + 1) * rowHeight;
+    for (let i = 0; i < Math.floor((w - 10) / 7); i++) {
+      const height = rowHeight - 3 - (i % 3),
+        bx = x + 5 + i * 7;
       rect(
         c,
-        x + 5 + i * 7,
-        y + 4 + row * 15,
+        bx,
+        baseline - height,
         5,
-        11 - (i % 3),
+        height,
         ["#9e6654", "#ccb579", "#76998b", "#dbccb0", "#788b9e"][i % 5],
       );
-    rect(c, x + 2, y + 15 + row * 15, w - 4, 3, "#b89a73");
+      rect(c, bx + 1, baseline - height + 2, 3, 1, "#eee0ba88");
+    }
+    rect(c, x + 2, baseline, w - 4, 2, "#c29e70");
   }
+  rect(c, x, y, 3, h, "#9b7954");
+  rect(c, x + w - 3, y, 3, h, "#9b7954");
 }
 function table(
   c: CanvasRenderingContext2D,
@@ -312,7 +481,7 @@ function table(
   rect(c, x + 14, y + 9, 7, 6, "#7b9a68");
   plant(c, x + w - 13, y + 17);
 }
-function interior(c: CanvasRenderingContext2D, s: SceneId) {
+function interior(c: CanvasRenderingContext2D, s: SceneId, t: number) {
   rect(c, 0, 0, 520, 390, "#718c83");
   rect(c, 30, 33, 460, 324, "#4a635b");
   rect(
@@ -321,17 +490,29 @@ function interior(c: CanvasRenderingContext2D, s: SceneId) {
     43,
     440,
     304,
-    s === "books" ? "#c6aa7e" : s === "vesuvio" ? "#b6a17e" : "#cdbb95",
+    s === "books" ? "#c6aa7e" : s === "vesuvio" ? "#927762" : "#cdbb95",
   );
   for (let y = 45; y < 345; y += 16) {
     rect(c, 41, y, 438, 1, "#a08a6944");
     for (let x = 45 + (y % 32 ? 0 : 24); x < 475; x += 48)
       rect(c, x, y, 1, 16, "#a08a6944");
   }
-  rect(c, 38, 39, 444, 32, "#87988a");
+  rect(
+    c,
+    38,
+    39,
+    444,
+    32,
+    s === "vesuvio" ? "#654e4a" : s === "trieste" ? "#9d765c" : "#87988a",
+  );
   rect(c, 38, 65, 444, 5, "#617467");
   windowArt(c, 50, 124, 18, 80);
   windowArt(c, 452, 124, 18, 80);
+  // Soft, stepped morning light, below furniture and characters.
+  for (let i = 0; i < 6; i++) {
+    rect(c, 69 + i * 5, 135 + i * 6, 36 - i * 4, 61 - i * 6, "#f4d99c0a");
+    rect(c, 415 + i * 5, 135 + i * 6, 36 - i * 4, 61 - i * 6, "#f4d99c0a");
+  }
   plant(c, 64, 319, true);
   plant(c, 456, 319);
   rect(c, 238, 336, 44, 13, "#746f5c");
@@ -365,18 +546,32 @@ function interior(c: CanvasRenderingContext2D, s: SceneId) {
     }
     rect(c, 353, 74, 15, 12, "#f2e6c2");
     rect(c, 355, 73, 11, 4, "#9bb181");
+    rect(c, 74, 91, 372, 2, "#644b3e");
+    for (let x = 80; x < 440; x += 46) {
+      rect(c, x, 98, 39, 17, "#a67e56");
+      rect(c, x + 3, 101, 33, 1, "#be986c");
+    }
+    rect(c, 94, 82, 80, 3, "#314f50");
+    for (let x = 99; x < 167; x += 6) rect(c, x, 86, 3, 2, "#c4cbbb");
+    rect(c, 177, 68, 12, 20, "#4b5e55");
+    rect(c, 179, 62, 8, 7, "#8a6547");
+    cup(c, 354, 76, t, true);
+    cup(c, 277, 77, t);
+    // Pendants cast quiet pools of amber over the counter.
+    for (const x of [238, 394]) {
+      rect(c, x, 64, 1, 8, "#514e3c");
+      rect(c, x - 7, 71, 15, 4, "#c59b60");
+      rect(c, x - 5, 75, 11, 2, "#f5deaa");
+    }
     table(c, 96, 178, 65, 48);
     table(c, 342, 186, 65, 48);
     rect(c, 316, 240, 24, 12, "#7a614d");
     rect(c, 315, 231, 4, 18, "#937655");
     rect(c, 315, 231, 25, 4, "#937655");
     label(c, "MATCHA", 362, 108, 7, "#f5e4b7");
-    rect(c, 262, 177, 48, 31, "#52665b");
-    rect(c, 265, 180, 42, 25, "#6b7c69");
-    label(c, "SLOW", 286, 190, 6, "#e4d4aa");
-    label(c, "MORNINGS", 286, 200, 6, "#e4d4aa");
-    rect(c, 182, 267, 125, 29, "#ac8668");
-    for (let i = 0; i < 8; i++) rect(c, 188 + i * 15, 270, 2, 23, "#c2a17c");
+    cup(c, 114, 188, t);
+    cup(c, 361, 196, t, true);
+    rug(c, 182, 267, 125, 29, "#a27a5c");
     for (let i = 0; i < 3; i++) {
       rect(c, 202 + i * 42, 126, 15, 6, "#947354");
       rect(c, 204 + i * 42, 132, 3, 6, "#705c45");
@@ -388,11 +583,20 @@ function interior(c: CanvasRenderingContext2D, s: SceneId) {
     shelf(c, 76, 157, 116, 27);
     shelf(c, 324, 157, 116, 27);
     shelf(c, 76, 238, 116, 27);
-    label(c, "FICTION", 134, 153, 8);
-    label(c, "POETRY", 382, 153, 8);
-    label(c, "TRAVEL", 134, 234, 8);
-    rect(c, 309, 257, 108, 40, "#8c9b80");
-    rect(c, 317, 264, 92, 26, "#aabc94");
+    for (const [x, y] of [
+      [76, 157],
+      [324, 157],
+      [76, 238],
+    ]) {
+      rect(c, x + 26, y - 19, 64, 15, "#e6d5aa");
+    }
+    rect(c, 213, 77, 38, 24, "#dfd0a7");
+    label(c, "OPEN", 232, 87, 7);
+    label(c, "A BOOK", 232, 96, 7);
+    label(c, "FICTION", 134, 153, 9);
+    label(c, "POETRY", 382, 153, 9);
+    label(c, "TRAVEL", 134, 234, 9);
+    rug(c, 309, 257, 108, 40, "#8c9b80");
     label(c, "READ A LITTLE.", 362, 280, 8);
   }
   if (s === "vesuvio") {
@@ -402,6 +606,16 @@ function interior(c: CanvasRenderingContext2D, s: SceneId) {
       rect(c, 82 + i * 27, 61, 8, 15, ["#638478", "#ac8764", "#b59c6e"][i % 3]);
       rect(c, 84 + i * 27, 58, 4, 5, "#cfc19b");
     }
+    for (let x = 77; x < 305; x += 38) {
+      rect(c, x, 87, 30, 26, "#5e4840");
+      rect(c, x + 3, 90, 24, 2, "#a57c54");
+    }
+    rug(c, 192, 216, 135, 64, "#805957");
+    for (const x of [108, 185, 262]) {
+      rect(c, x, 122, 16, 7, "#674b46");
+      rect(c, x + 2, 129, 2, 7, "#554e43");
+      rect(c, x + 12, 129, 2, 7, "#554e43");
+    }
     table(c, 370, 184, 55, 48);
     table(c, 104, 206, 55, 48);
     for (let i = 0; i < 3; i++) {
@@ -409,20 +623,62 @@ function interior(c: CanvasRenderingContext2D, s: SceneId) {
       rect(c, 345 + i * 41, 85, 25, 29, ["#b79970", "#74958b", "#b07960"][i]);
       rect(c, 352 + i * 41, 94, 12, 13, "#d9c39a");
     }
-    for (let i = 0; i < 5; i++)
-      rect(c, 208 + i * 20, 251, 12, 12, i % 2 ? "#879c8c" : "#e1c99c");
+    for (let i = 0; i < 3; i++) {
+      rect(c, 347 + i * 41, 88, 4, 13, "#536e62");
+      rect(c, 351 + i * 41, 99, 14, 3, "#d3bd8e");
+    }
+    cup(c, 384, 196, t);
+    cup(c, 115, 218, t);
   }
   if (s === "tower") {
-    rect(c, 80, 83, 360, 32, "#9ab3ae");
-    rect(c, 80, 103, 360, 12, "#739494");
-    for (let i = 0; i < 15; i++)
-      rect(c, 85 + i * 23, 100 - (i % 4) * 4, 14, 10 + (i % 4) * 4, "#7b9b97");
-    for (let x = 80; x < 440; x += 72) rect(c, x, 80, 4, 35, "#e0d5b4");
-    rect(c, 80, 112, 360, 4, "#ede2c2");
-    table(c, 90, 230, 90, 22);
-    table(c, 345, 230, 85, 22);
-    rect(c, 229, 215, 60, 47, "#bab192");
-    label(c, "SF", 260, 243, 19, "#7b897b");
+    // An interpreted panorama within the original observation-wall footprint.
+    rect(c, 77, 37, 366, 79, "#667e78");
+    rect(c, 82, 41, 356, 69, "#c5d3c5");
+    for (let x = 82; x < 438; x += 4) {
+      const hill = 58 + Math.round(5 * Math.sin(x / 43) + 3 * Math.sin(x / 19));
+      rect(c, x, hill, 4, 34, "#9bb4a8");
+    }
+    rect(c, 82, 76, 356, 34, "#809f9f");
+    for (let i = 0; i < 20; i++)
+      rect(c, 88 + i * 17, 82 + (i % 4) * 5, 10, 1, "#c6d3bd66");
+    // Bay bridge silhouette, sailboat and layered waterfront roofs.
+    rect(c, 286, 65, 142, 2, "#607e7c");
+    for (const x of [315, 386]) {
+      rect(c, x, 49, 3, 29, "#607e7c");
+      rect(c, x - 2, 49, 7, 2, "#607e7c");
+    }
+    for (let i = 0; i < 17; i++) {
+      const x = 295 + i * 8;
+      rect(
+        c,
+        x,
+        56 + Math.round(8 * Math.sin((i / 16) * Math.PI)),
+        1,
+        7,
+        "#728e86",
+      );
+    }
+    rect(c, 222, 87, 1, 11, "#e6dcb7");
+    rect(c, 217, 96, 13, 2, "#4f777b");
+    for (let i = 0; i < 7; i++) rect(c, 222 - i, 89 + i, 1, 7 - i, "#f0e3bf");
+    for (let i = 0; i < 18; i++) {
+      const h = 8 + ((i * 7) % 19);
+      rect(c, 84 + i * 20, 109 - h, 16, h, i % 2 ? "#6a8780" : "#81988a");
+      rect(c, 87 + i * 20, 112 - h, 3, 2, "#c6ceae");
+    }
+    for (let x = 80; x < 440; x += 72) rect(c, x, 38, 4, 77, "#e0d5b4");
+    rect(c, 77, 111, 366, 5, "#ede2c2");
+    label(c, "THE BAY, THROUGH THE FOG", 260, 157, 9, "#526c66");
+    for (const [x, w] of [
+      [90, 90],
+      [345, 85],
+    ]) {
+      rect(c, x + 4, 250, w - 8, 4, "#9a927888");
+      rect(c, x, 230, w, 20, "#a78d67");
+      for (let y = 233; y < 248; y += 5) rect(c, x + 3, y, w - 6, 2, "#d1ba8d");
+    }
+    rug(c, 229, 215, 60, 47, "#a4aa90");
+    label(c, "SF", 260, 243, 19, "#607c72");
   }
 }
 export function michael(
@@ -451,7 +707,10 @@ export function michael(
   rect(c, 2, -8, 4, 8 - (state.sitting ? 3 : step), a.jeans);
   rect(c, -6, step, 5, 3, "#394c4b");
   rect(c, 2, -step, 5, 3, "#394c4b");
-  rect(c, -7, -21, 14, 14, state.outfit === "rice" ? a.rice : a.sweater);
+  rect(c, -8, -21, 16, 14, state.outfit === "rice" ? a.rice : a.sweater);
+  rect(c, -6, -8, 12, 1, "#354d5c");
+  rect(c, -3, -22, 6, 3, a.skin);
+  rect(c, -7, -20, 2, 11, state.outfit === "rice" ? "#395970" : "#96563f");
   rect(c, -10, -20 + lean, 3, 12, a.skin);
   rect(c, 7, -20 + lean, 3, state.pet > 0 ? 6 : 12, a.skin);
   rect(c, -6, -32 + lean, 12, 12, a.skin);
@@ -462,8 +721,22 @@ export function michael(
     rect(c, state.direction === 1 ? 2 : -3, -26 + lean, 2, 2, a.eyes);
     if (state.direction === 0) rect(c, 3, -26 + lean, 2, 2, a.eyes);
   } else rect(c, -5, -30 + lean, 10, 7, a.hair);
+  if (state.outfit === "rice") {
+    rect(c, -10, -20 + lean, 3, 4, a.rice);
+    rect(c, 7, -20 + lean, 3, 4, a.rice);
+  }
   if (state.outfit === "rice" && state.direction !== 3)
-    label(c, "RICE", 0, -14, 4, "#e7e8d3");
+    label(c, "RICE", 0, -12, 5, "#e7e8d3");
+  if (state.outfit === "sweater") {
+    rect(c, -10, -20 + lean, 3, 8, a.sweater);
+    rect(c, 7, -20 + lean, 3, state.pet > 0 ? 4 : 8, a.sweater);
+    if (state.direction !== 3) {
+      rect(c, -1, -20, 3, 8, "#804c3e");
+      rect(c, 0, -18, 1, 1, "#e2c297");
+      rect(c, 0, -15, 1, 1, "#e2c297");
+    }
+  }
+  rect(c, -4, -32 + lean, 7, 1, "#74523b");
   c.restore();
 }
 export function bella(
@@ -483,17 +756,34 @@ export function bella(
   rect(c, -5, -2, 3, 5, a.ears);
   rect(c, 3, -2, 3, 5, a.ears);
   rect(c, 2, -17, 10, 11, a.coat);
-  rect(c, 0, -21, 4, 10, a.ears);
-  rect(c, 10, -21, 4, 10, a.ears);
+  rect(c, 0, -21, 3, 9, a.ears);
+  rect(c, -1, -19, 5, 6, a.coat);
+  rect(c, 11, -21, 3, 9, a.ears);
+  rect(c, 10, -19, 5, 6, a.coat);
+  rect(c, 1, -18, 1, 4, a.ears);
+  rect(c, 12, -18, 1, 4, a.ears);
   rect(c, 1, -17, 3, 8, a.light);
   rect(c, 11, -16, 3, 8, a.light);
   rect(c, 5, -9, 6, 3, a.light);
   rect(c, 5, -13, 1, 2, "#353f36");
   rect(c, 10, -13, 1, 2, "#353f36");
   rect(c, 8, -10, 2, 2, "#353f36");
+  // Layered cheek fringe, chest ruff and feathered haunches.
+  rect(c, 1, -8, 12, 3, a.light);
+  rect(c, 3, -5, 8, 2, a.light);
+  rect(c, -1, -10, 3, 4, a.light);
+  rect(c, 12, -11, 3, 4, a.light);
+  rect(c, -7, -4, 2, 4, a.light);
+  rect(c, -3, -4, 2, 3, a.light);
+  rect(c, 0, -2, 2, 2, a.light);
+  rect(c, 7, -3, 2, 3, a.light);
   const wag = !reduced && Math.sin(t * (pet ? 30 : 3)) > 0 ? 3 : 0;
   rect(c, -12, -14 + wag, 5, 10, a.light);
   rect(c, -14, -16 + wag, 5, 5, a.light);
+  rect(c, -15, -14 + wag, 2, 3, a.light);
+  rect(c, -12, -18 + wag, 5, 2, a.light);
+  rect(c, -8, -17 + wag, 3, 3, a.light);
+  rect(c, -10, -13 + wag, 2, 5, a.coat);
   c.restore();
 }
 export function render(
@@ -508,7 +798,7 @@ export function render(
   c.save();
   c.translate(-Math.round(camera.x), -Math.round(camera.y));
   if (scene === "street") street(c, time, reduced);
-  else interior(c, scene);
+  else interior(c, scene, reduced ? 0 : time);
   for (const s of spots(scene)) {
     const near = Math.hypot(s.x - player.x, s.y - player.y) < 32;
     ellipse(
@@ -543,7 +833,7 @@ export function render(
     );
   }
   if (scene === "street" && !reduced) {
-    c.globalAlpha = 0.1;
+    c.globalAlpha = 0.055;
     for (let i = 0; i < 4; i++) {
       const x = ((time * 5 + i * 251) % (d.w + 200)) - 100;
       ellipse(c, x, 110 + i * 136, 125, 13, "#eef0da");

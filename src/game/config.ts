@@ -5,7 +5,7 @@ export const appearance = {
     skin: "#dca879",
     jeans: "#526d86",
     rice: "#29465d",
-    sweater: "#b3674f",
+    sweater: "#b3674f", // Rust henley; retain the stored outfit key for compatibility.
   },
   bella: { coat: "#c89c65", light: "#f0d9ad", ears: "#875b3d" }, // Provisional honey / cream coat. Edit here.
 };
